@@ -26,16 +26,11 @@ except ImportError:
 ########################################################################################################################
 # The plugin's identifier, has to be unique
 plugin_identifier = "octolapse"
-# The plugin's python package, should be "octoprint_<plugin identifier>", has to be unique
 plugin_package = "octoprint_octolapse"
-# The plugin's human readable name
 plugin_name = "Octolapse"
-# The plugin's fallback version
 fallback_version = NumberedVersion.clean_version(NumberedVersion.CurrentVersion)
-# Get the cleaned version number from versioneer
 plugin_version = NumberedVersion.clean_version(versioneer.get_versions(verbose=True)["version"])
 
-# Depending on the installation method, versioneer might not know the current version
 if plugin_version == "0+unknown":
     plugin_version = fallback_version
     try:
@@ -44,8 +39,7 @@ if plugin_version == "0+unknown":
         pass
 
 plugin_cmdclass = versioneer.get_cmdclass()
-
-plugin_description = """Create stabilized timelapses of your 3d prints.  Highly customizable, loads of presets, lots of fun."""
+plugin_description = """Create stabilized timelapses of your 3d prints. Highly customizable, loads of presets, lots of fun."""
 plugin_author = "Brad Hochgesang"
 plugin_author_email = "FormerLurker@pm.me"
 plugin_url = "https://github.com/FormerLurker/Octolapse"
@@ -54,7 +48,12 @@ plugin_license = "AGPLv3"
 plugin_requires = [
     "pillow>=9.3,<11",
     "sarge>=0.1.5",
-    "six"
+    "six",
+    "OctoPrint>=1.4.0",
+    "psutil",
+    "file_read_backwards",
+    "setuptools>=6.0",
+    "awesome-slugify>=1.6.5,<1.7"
 ]
 
 plugin_additional_data = [
@@ -76,7 +75,6 @@ plugin_ignored_packages = []
 
 DEBUG = False
 
-# Define compiler options based on platform and compiler type
 def get_compiler_opts(compiler_type):
     """Get compiler options based on compiler type string"""
     
@@ -124,25 +122,17 @@ class build_ext_subclass(build_ext):
     def build_extensions(self):
         print("Compiling Octolapse Parser Extension with {0}.".format(self.compiler.compiler_type))
         
-        # Get compiler options for this compiler type
         opts = get_compiler_opts(self.compiler.compiler_type)
         
-        # Apply options to all extensions
         for extension in self.extensions:
             for attrib, value in opts.items():
                 getattr(extension, attrib).extend(value)
         
-        # Call parent build
         build_ext.build_extensions(self)
         
-        # Print build info
         for extension in self.extensions:
-            print("Build Extensions for {0} - extra_compile_args:{1} - extra_link_args:{2} - define_macros:{3}".format(
-                extension.name, extension.extra_compile_args, extension.extra_link_args, extension.define_macros)
-            )
+            print(f"Build Extensions for {extension.name} - extra_compile_args: {extension.extra_compile_args} - extra_link_args: {extension.extra_link_args} - define_macros: {extension.define_macros}")
 
-
-## Build our c++ parser extension
 plugin_ext_sources = [
     'octoprint_octolapse/data/lib/c/gcode_position_processor.cpp',
     'octoprint_octolapse/data/lib/c/gcode_parser.cpp',
@@ -175,13 +165,10 @@ additional_setup_parameters = {
     "cmdclass": {"build_ext": build_ext_subclass}
 }
 
-########################################################################################################################
 try:
     import octoprint_setuptools
-except:
-    print("Could not import OctoPrint's setuptools, are you sure you are running that under "
-          "the same python installation that OctoPrint is installed under?")
-    import sys
+except ImportError:
+    print("Could not import OctoPrint's setuptools, are you sure you are running under the correct Python environment?")
     sys.exit(-1)
 
 setup_parameters = octoprint_setuptools.create_plugin_setup_parameters(
